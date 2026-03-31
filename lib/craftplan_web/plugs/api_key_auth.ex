@@ -17,6 +17,8 @@ defmodule CraftplanWeb.Plugs.ApiKeyAuth do
 
   @impl true
   def call(conn, _opts) do
+    Process.delete(:api_key_scopes)
+
     if conn.assigns[:current_user] do
       conn
     else
@@ -30,8 +32,7 @@ defmodule CraftplanWeb.Plugs.ApiKeyAuth do
          key_hash = :sha256 |> :crypto.hash(raw_key) |> Base.encode16(case: :lower),
          {:ok, api_key} <- Accounts.authenticate_api_key(%{key_hash: key_hash}),
          {:ok, user} <- Ash.get(Craftplan.Accounts.User, api_key.user_id, authorize?: false) do
-      # Store scopes in process dictionary for ApiScopeCheck policy
-      Process.put(:api_key_scopes, api_key.scopes)
+      conn = put_api_scope_context(conn, api_key.scopes)
 
       # Touch last_used_at asynchronously
       Task.start(fn ->
@@ -52,5 +53,14 @@ defmodule CraftplanWeb.Plugs.ApiKeyAuth do
       ["Bearer " <> token] -> {:ok, token}
       _ -> :error
     end
+  end
+
+  defp put_api_scope_context(conn, scopes) do
+    Process.put(:api_key_scopes, scopes)
+
+    register_before_send(conn, fn conn ->
+      Process.delete(:api_key_scopes)
+      conn
+    end)
   end
 end

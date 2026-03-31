@@ -16,6 +16,8 @@ defmodule CraftplanWeb.Plugs.CalendarApiKeyAuth do
 
   @impl true
   def call(conn, _opts) do
+    Process.delete(:api_key_scopes)
+
     case extract_query_key(conn) do
       {:ok, raw_key} -> authenticate(conn, raw_key)
       :error -> unauthorized(conn)
@@ -34,7 +36,7 @@ defmodule CraftplanWeb.Plugs.CalendarApiKeyAuth do
 
     with {:ok, api_key} <- Accounts.authenticate_api_key(%{key_hash: key_hash}),
          {:ok, user} <- Ash.get(Craftplan.Accounts.User, api_key.user_id, authorize?: false) do
-      Process.put(:api_key_scopes, api_key.scopes)
+      conn = put_api_scope_context(conn, api_key.scopes)
 
       Task.start(fn ->
         Accounts.touch_api_key_last_used(api_key, authorize?: false)
@@ -54,5 +56,14 @@ defmodule CraftplanWeb.Plugs.CalendarApiKeyAuth do
     |> put_resp_content_type("text/plain")
     |> send_resp(401, "Unauthorized")
     |> halt()
+  end
+
+  defp put_api_scope_context(conn, scopes) do
+    Process.put(:api_key_scopes, scopes)
+
+    register_before_send(conn, fn conn ->
+      Process.delete(:api_key_scopes)
+      conn
+    end)
   end
 end

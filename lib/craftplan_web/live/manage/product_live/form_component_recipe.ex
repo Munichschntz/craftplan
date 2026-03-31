@@ -1124,9 +1124,7 @@ defmodule CraftplanWeb.ProductLive.FormComponentRecipe do
   end
 
   defp select_bom(socket, actor) do
-    selected =
-      Map.get(socket.assigns, :selected_version) ||
-        Map.get(socket.assigns, :selected_version, nil)
+    selected = Map.get(socket.assigns, :selected_version)
 
     if is_integer(selected) do
       case Catalog.list_boms_for_product(%{product_id: socket.assigns.product.id},

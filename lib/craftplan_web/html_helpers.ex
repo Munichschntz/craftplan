@@ -512,26 +512,26 @@ defmodule CraftplanWeb.HtmlHelpers do
     _ -> "#6b7280"
   end
 
-  defp status_color(status, type) do
-    get_in(@status_colors, [String.to_atom(type), status]) ||
-      @status_colors[String.to_atom(type)][:default]
+  defp status_color(status, type) when is_atom(type) do
+    get_in(@status_colors, [type, status]) ||
+      @status_colors[type][:default]
   end
 
-  defp status_bg(status, type) do
-    get_in(@status_backgrounds, [String.to_atom(type), status]) ||
-      @status_backgrounds[String.to_atom(type)][:default]
+  defp status_bg(status, type) when is_atom(type) do
+    get_in(@status_backgrounds, [type, status]) ||
+      @status_backgrounds[type][:default]
   end
 
-  def product_status_color(status), do: status_color(status, "product")
-  def order_status_color(status), do: status_color(status, "order")
-  def payment_status_color(status), do: status_color(status, "payment")
-  def order_item_status_color(status), do: status_color(status, "order_item")
+  def product_status_color(status), do: status_color(status, :product)
+  def order_status_color(status), do: status_color(status, :order)
+  def payment_status_color(status), do: status_color(status, :payment)
+  def order_item_status_color(status), do: status_color(status, :order_item)
 
-  def product_status_bg(status), do: status_bg(status, "product")
-  def order_status_bg(status), do: status_bg(status, "order")
-  def payment_status_bg(status), do: status_bg(status, "payment")
-  def order_item_status_bg(status), do: status_bg(status, "order_item")
-  def order_dot_status_bg(status), do: status_bg(status, "order_dot")
+  def product_status_bg(status), do: status_bg(status, :product)
+  def order_status_bg(status), do: status_bg(status, :order)
+  def payment_status_bg(status), do: status_bg(status, :payment)
+  def order_item_status_bg(status), do: status_bg(status, :order_item)
+  def order_dot_status_bg(status), do: status_bg(status, :order_dot)
 
   def product_status_dot(status) do
     @status_dots[status] || @status_dots[:default]

@@ -654,22 +654,14 @@ defmodule CraftplanWeb.Components.Core do
   attr :class, :string, default: nil, doc: "Additional CSS classes"
 
   def badge(assigns) do
-    key =
+    source =
       if Map.has_key?(assigns, :value) and assigns.value != :default do
-        value = assigns.value
-
-        cond do
-          is_atom(value) -> value
-          is_binary(value) -> String.to_atom(value)
-          true -> :default
-        end
+        assigns.value
       else
-        cond do
-          is_atom(assigns.text) -> assigns.text
-          is_binary(assigns.text) -> String.to_atom(assigns.text)
-          true -> :default
-        end
+        assigns.text
       end
+
+    key = badge_key(source, assigns.colors)
 
     color_class = Keyword.get(assigns.colors, key, "bg-stone-100 text-stone-700 border-stone-300")
     assigns = assign(assigns, :color_class, color_class)
@@ -683,6 +675,33 @@ defmodule CraftplanWeb.Components.Core do
       {format_label(@text)}
     </span>
     """
+  end
+
+  defp badge_key(value, colors) when is_list(colors) do
+    cond do
+      Keyword.has_key?(colors, value) ->
+        value
+
+      is_atom(value) and Keyword.has_key?(colors, Atom.to_string(value)) ->
+        Atom.to_string(value)
+
+      is_binary(value) ->
+        case safe_to_existing_atom(value) do
+          {:ok, atom_key} when Keyword.has_key?(colors, atom_key) -> atom_key
+          _ -> :default
+        end
+
+      true ->
+        :default
+    end
+  end
+
+  defp badge_key(_value, _colors), do: :default
+
+  defp safe_to_existing_atom(value) when is_binary(value) do
+    {:ok, String.to_existing_atom(value)}
+  rescue
+    ArgumentError -> :error
   end
 
   @doc """

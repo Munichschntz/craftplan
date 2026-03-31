@@ -14,6 +14,17 @@ defmodule CraftplanWeb.ProductLive.Index do
     <.header>
       Products
       <:actions>
+        <.form for={%{}} id="product-tag-filter-form" phx-change="filter_tag">
+          <select
+            name="tag"
+            class="rounded-md border border-stone-300 bg-white px-2 py-1 text-sm text-stone-700"
+          >
+            <option value="">All tags</option>
+            <option :for={tag <- @available_tags} value={tag} selected={tag == @selected_tag}>
+              {tag}
+            </option>
+          </select>
+        </.form>
         <.link patch={~p"/manage/products/new"}>
           <.button variant={:primary}>New Product</.button>
         </.link>
@@ -72,6 +83,14 @@ defmodule CraftplanWeb.ProductLive.Index do
         {format_money(@settings.currency, product.gross_profit)}
       </:col>
 
+      <:col :let={{_, product}} label="Profit margin">
+        {format_percentage(product.profit_margin || Decimal.new(0))}%
+      </:col>
+
+      <:col :let={{_, product}} label="Tags">
+        <span class="text-xs text-stone-600">{Enum.join(product.tags || [], ", ")}</span>
+      </:col>
+
       <:action :let={{_, product}}>
         <.link
           phx-click={JS.push("delete", value: %{id: product.id}) |> hide("#product-#{product.id}")}
@@ -107,27 +126,13 @@ defmodule CraftplanWeb.ProductLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    products =
-      Catalog.list_products!(
-        actor: socket.assigns[:current_user],
-        page: [limit: 100],
-        load: [
-          :materials_cost,
-          :bom_unit_cost,
-          :markup_percentage,
-          :gross_profit
-        ]
-      )
-
-    results =
-      case products do
-        %Ash.Page.Keyset{results: res} -> res
-        %Ash.Page.Offset{results: res} -> res
-        other -> other
-      end
+    results = load_products(socket.assigns[:current_user], nil)
+    available_tags = extract_tags(results)
 
     socket =
       socket
+      |> assign(:selected_tag, nil)
+      |> assign(:available_tags, available_tags)
       |> assign(:breadcrumbs, [
         %{label: "Products", path: ~p"/manage/products", current?: true}
       ])
@@ -138,7 +143,17 @@ defmodule CraftplanWeb.ProductLive.Index do
 
   @impl true
   def handle_params(params, _url, socket) do
-    {:noreply, apply_action(socket, socket.assigns.live_action, params)}
+    selected_tag = normalize_tag(Map.get(params, "tag"))
+    products = load_products(socket.assigns.current_user, selected_tag)
+
+    socket =
+      socket
+      |> assign(:selected_tag, selected_tag)
+      |> assign(:available_tags, extract_tags(load_products(socket.assigns.current_user, nil)))
+      |> stream(:products, products, reset: true)
+      |> apply_action(socket.assigns.live_action, params)
+
+    {:noreply, socket}
   end
 
   defp apply_action(socket, :new, _params) do
@@ -170,12 +185,77 @@ defmodule CraftplanWeb.ProductLive.Index do
   end
 
   @impl true
+  def handle_event("filter_tag", %{"tag" => tag}, socket) do
+    tag = normalize_tag(tag)
+
+    to =
+      if is_nil(tag) do
+        ~p"/manage/products"
+      else
+        ~p"/manage/products?tag=#{tag}"
+      end
+
+    {:noreply, push_patch(socket, to: to)}
+  end
+
+  @impl true
   def handle_info({CraftplanWeb.ProductLive.FormComponent, {:saved, product}}, socket) do
     product =
-      Ash.load!(product, [:materials_cost, :bom_unit_cost, :markup_percentage, :gross_profit],
+      Ash.load!(product, [:materials_cost, :bom_unit_cost, :markup_percentage, :gross_profit, :profit_margin],
         actor: socket.assigns.current_user
       )
 
-    {:noreply, stream_insert(socket, :products, product)}
+    socket =
+      case socket.assigns.selected_tag do
+        nil -> stream_insert(socket, :products, product)
+        tag when tag in (product.tags || []) -> stream_insert(socket, :products, product)
+        _ -> socket
+      end
+
+    {:noreply, socket}
+  end
+
+  defp load_products(actor, selected_tag) do
+    products =
+      Catalog.list_products!(
+        actor: actor,
+        page: [limit: 100],
+        load: [
+          :materials_cost,
+          :bom_unit_cost,
+          :markup_percentage,
+          :gross_profit,
+          :profit_margin
+        ]
+      )
+
+    results =
+      case products do
+        %Ash.Page.Keyset{results: res} -> res
+        %Ash.Page.Offset{results: res} -> res
+        other -> other
+      end
+
+    case selected_tag do
+      nil -> results
+      tag -> Enum.filter(results, fn product -> tag in (product.tags || []) end)
+    end
+  end
+
+  defp extract_tags(products) do
+    products
+    |> Enum.flat_map(fn product -> product.tags || [] end)
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
+
+  defp normalize_tag(nil), do: nil
+  defp normalize_tag(""), do: nil
+
+  defp normalize_tag(tag) do
+    case String.trim(tag) do
+      "" -> nil
+      value -> value
+    end
   end
 end

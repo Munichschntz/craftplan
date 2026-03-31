@@ -51,7 +51,8 @@ defmodule Craftplan.Inventory.Material do
         :unit,
         :price,
         :minimum_stock,
-        :maximum_stock
+        :maximum_stock,
+        :preferred_supplier_id
       ]
     ]
 
@@ -65,7 +66,8 @@ defmodule Craftplan.Inventory.Material do
         :unit,
         :price,
         :minimum_stock,
-        :maximum_stock
+        :maximum_stock,
+        :preferred_supplier_id
       ]
 
       change Craftplan.Inventory.Changes.RefreshAffectedBomRollups
@@ -168,6 +170,10 @@ defmodule Craftplan.Inventory.Material do
     has_many :material_allergens, MaterialAllergen
     has_many :material_nutritional_facts, MaterialNutritionalFact
     # Recipes removed
+
+    belongs_to :preferred_supplier, Craftplan.Inventory.Supplier do
+      allow_nil? true
+    end
 
     many_to_many :allergens, Craftplan.Inventory.Allergen, through: MaterialAllergen
 

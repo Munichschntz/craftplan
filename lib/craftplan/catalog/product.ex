@@ -54,7 +54,8 @@ defmodule Craftplan.Catalog.Product do
         :photos,
         :featured_photo,
         :selling_availability,
-        :max_daily_quantity
+        :max_daily_quantity,
+        :tags
       ],
       update: [
         :name,
@@ -64,7 +65,8 @@ defmodule Craftplan.Catalog.Product do
         :photos,
         :featured_photo,
         :selling_availability,
-        :max_daily_quantity
+        :max_daily_quantity,
+        :tags
       ]
     ]
 
@@ -170,6 +172,13 @@ defmodule Craftplan.Catalog.Product do
       description "Optional per-product capacity per day (0 = unlimited)"
     end
 
+    attribute :tags, {:array, :string} do
+      public? true
+      allow_nil? false
+      default []
+      description "Tags used for grouping and filtering products in the UI."
+    end
+
     timestamps()
   end
 
@@ -200,6 +209,12 @@ defmodule Craftplan.Catalog.Product do
 
     calculate :gross_profit, :decimal, Craftplan.Catalog.Product.Calculations.GrossProfit do
       description "The profit amount calculated as selling price minus unit cost"
+    end
+
+    calculate :profit_margin,
+              :decimal,
+              Craftplan.Catalog.Product.Calculations.ProfitMargin do
+      description "Profit margin ratio calculated as (price - unit cost) / price"
     end
 
     calculate :allergens, :vector, Craftplan.Catalog.Product.Calculations.Allergens

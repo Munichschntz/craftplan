@@ -191,6 +191,72 @@ defmodule CraftplanWeb.OverviewLive do
                   </:empty>
                 </.table>
               </Page.surface>
+
+              <Page.surface class="mt-4">
+                <:header>
+                  <div>
+                    <h3 class="text-sm font-semibold text-stone-900">Low inventory alerts</h3>
+                    <p class="text-xs text-stone-500">
+                      Materials below their configured minimum threshold.
+                    </p>
+                  </div>
+                </:header>
+                <.table
+                  id="low-inventory-alerts"
+                  rows={@overview_tables.low_inventory}
+                  variant={:compact}
+                  zebra
+                  no_margin
+                  row_click={fn row -> JS.navigate("/manage/inventory/#{row.material.sku}") end}
+                >
+                  <:col :let={row} label="Material">{row.material.name}</:col>
+                  <:col :let={row} label="Current" align={:right}>
+                    {format_amount(row.material.unit, row.current_stock)}
+                  </:col>
+                  <:col :let={row} label="Threshold" align={:right}>
+                    {format_amount(row.material.unit, row.minimum_stock)}
+                  </:col>
+                  <:col :let={row} label="Shortfall" align={:right}>
+                    {format_amount(row.material.unit, row.shortfall)}
+                  </:col>
+                  <:empty>
+                    <div class="rounded-md border border-dashed border-stone-200 bg-stone-50 py-6 text-center text-sm text-stone-500">
+                      No materials are currently below threshold.
+                    </div>
+                  </:empty>
+                </.table>
+              </Page.surface>
+
+              <Page.surface class="mt-4">
+                <:header>
+                  <div>
+                    <h3 class="text-sm font-semibold text-stone-900">Upcoming production shortages</h3>
+                    <p class="text-xs text-stone-500">
+                      Forecasted materials that may block production soon.
+                    </p>
+                  </div>
+                </:header>
+                <.table
+                  id="upcoming-production-shortages"
+                  rows={@overview_tables.upcoming_shortages}
+                  variant={:compact}
+                  zebra
+                  no_margin
+                  row_click={fn row -> JS.navigate("/manage/inventory/#{row.material.sku}") end}
+                >
+                  <:col :let={row} label="Material">{row.material.name}</:col>
+                  <:col :let={row} label="Risk">{row.risk_state}</:col>
+                  <:col :let={row} label="Order by">{format_date(row.order_by_date, format: "%a %d")}</:col>
+                  <:col :let={row} label="Suggested PO" align={:right}>
+                    {format_amount(row.material.unit, row.suggested_po_qty)}
+                  </:col>
+                  <:empty>
+                    <div class="rounded-md border border-dashed border-stone-200 bg-stone-50 py-6 text-center text-sm text-stone-500">
+                      No upcoming shortages detected in this range.
+                    </div>
+                  </:empty>
+                </.table>
+              </Page.surface>
             </Page.form_grid>
           </Page.section>
         </:left>
@@ -1578,6 +1644,44 @@ defmodule CraftplanWeb.OverviewLive do
       end)
       |> Enum.sort_by(fn r -> {r.day, r.material.name} end)
 
+    low_inventory_rows =
+      Inventory.list_materials!(actor: socket.assigns.current_user, load: [:current_stock])
+      |> Enum.filter(fn material ->
+        minimum_stock = material.minimum_stock || Decimal.new(0)
+        current_stock = material.current_stock || Decimal.new(0)
+
+        Decimal.compare(minimum_stock, Decimal.new(0)) == :gt and
+          Decimal.compare(current_stock, minimum_stock) == :lt
+      end)
+      |> Enum.map(fn material ->
+        current_stock = material.current_stock || Decimal.new(0)
+        minimum_stock = material.minimum_stock || Decimal.new(0)
+
+        %{
+          material: material,
+          current_stock: current_stock,
+          minimum_stock: minimum_stock,
+          shortfall: Decimal.sub(minimum_stock, current_stock)
+        }
+      end)
+      |> Enum.sort_by(fn row -> row.material.name end)
+
+    upcoming_shortage_rows =
+      InventoryForecasting.owner_grid_rows(assigns.days_range, [], socket.assigns.current_user)
+      |> Enum.filter(&(&1.risk_state in [:shortage, :watch]))
+      |> Enum.map(fn row ->
+        material = Inventory.get_material_by_id!(row.material_id, actor: socket.assigns.current_user)
+
+        %{
+          material: material,
+          risk_state: row.risk_state,
+          order_by_date: row.order_by_date,
+          suggested_po_qty: row.suggested_po_qty
+        }
+      end)
+      |> Enum.sort_by(fn row -> {row.order_by_date || Date.utc_today(), row.material.name} end)
+      |> Enum.take(8)
+
     orders_today_rows = Map.get(socket.assigns, :orders_today_rows, [])
 
     today = Date.utc_today()
@@ -1598,6 +1702,8 @@ defmodule CraftplanWeb.OverviewLive do
       over_capacity: over_capacity_rows,
       over_order_capacity: over_order_capacity_rows,
       shortage: shortage_rows,
+      low_inventory: low_inventory_rows,
+      upcoming_shortages: upcoming_shortage_rows,
       orders_today: orders_today_rows,
       outstanding_today: outstanding_today_rows
     }

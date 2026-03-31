@@ -71,6 +71,17 @@ defmodule CraftplanWeb.InventoryLive.Index do
                 <:col :let={{_, material}} label="Current stock">
                   {format_amount(material.unit, material.current_stock)}
                 </:col>
+                <:col :let={{_, material}} label="Threshold">
+                  {format_amount(material.unit, material.minimum_stock || Decimal.new(0))}
+                </:col>
+                <:col :let={{_, material}} label="Alert">
+                  <.badge
+                    :if={low_inventory?(material)}
+                    text="Low inventory"
+                    class="bg-rose-100 text-rose-700 border-rose-200"
+                  />
+                  <span :if={!low_inventory?(material)} class="text-xs text-stone-500">Healthy</span>
+                </:col>
                 <:col :let={{_, material}} label="Price">
                   {format_money(@settings.currency, material.price)} per {material.unit}
                 </:col>
@@ -701,5 +712,13 @@ defmodule CraftplanWeb.InventoryLive.Index do
 
   defp prepare_materials_requirements(socket, days_range) do
     InventoryForecasting.prepare_materials_requirements(days_range, socket.assigns.current_user)
+  end
+
+  defp low_inventory?(material) do
+    minimum_stock = material.minimum_stock || Decimal.new(0)
+    current_stock = material.current_stock || Decimal.new(0)
+
+    Decimal.compare(minimum_stock, Decimal.new(0)) == :gt and
+      Decimal.compare(current_stock, minimum_stock) == :lt
   end
 end

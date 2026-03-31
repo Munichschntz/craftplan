@@ -7,6 +7,9 @@ defmodule Craftplan.Inventory.Movement do
     authorizers: [Ash.Policy.Authorizer],
     extensions: [AshJsonApi.Resource, AshGraphql.Resource]
 
+  alias Craftplan.Inventory.AutoReorder
+  alias Decimal, as: D
+
   json_api do
     type "movement"
 
@@ -38,6 +41,16 @@ defmodule Craftplan.Inventory.Movement do
       accept [:quantity, :reason, :material_id, :lot_id]
 
       change set_attribute(:occurred_at, &DateTime.utc_now/0)
+
+      change after_action(fn changeset, movement, _context ->
+               quantity = movement.quantity || D.new(0)
+
+               if D.compare(quantity, D.new(0)) == :lt do
+                 _ = AutoReorder.maybe_create_for_material(movement.material_id, changeset.context[:actor])
+               end
+
+               {:ok, movement}
+             end)
     end
   end
 

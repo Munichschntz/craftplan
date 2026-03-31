@@ -18,6 +18,13 @@ defmodule CraftplanWeb.InventoryLive.FormComponentMaterial do
       >
         <.input field={@form[:name]} type="text" label="Name" />
         <.input field={@form[:sku]} type="text" label="SKU" />
+        <.input
+          field={@form[:preferred_supplier_id]}
+          type="select"
+          label="Preferred supplier"
+          prompt="Select supplier"
+          options={for s <- @suppliers, do: {s.name, s.id}}
+        />
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <.input field={@form[:price]} type="number" label="Price" step="0.001" min="0" />
 
@@ -33,7 +40,7 @@ defmodule CraftplanWeb.InventoryLive.FormComponentMaterial do
         <.input
           field={@form[:minimum_stock]}
           type="number"
-          label="Minimum Stock"
+          label="Low inventory threshold"
           inline_label={@form[:unit].value || :gram}
           step="0.001"
           min="0"
@@ -57,7 +64,8 @@ defmodule CraftplanWeb.InventoryLive.FormComponentMaterial do
 
   @impl true
   def update(assigns, socket) do
-    {:ok, socket |> assign(assigns) |> assign_form()}
+    suppliers = Inventory.list_suppliers!(actor: socket.assigns.current_user)
+    {:ok, socket |> assign(assigns) |> assign(:suppliers, suppliers) |> assign_form()}
   end
 
   @impl true

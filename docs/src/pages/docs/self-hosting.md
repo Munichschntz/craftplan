@@ -20,6 +20,22 @@ cp .env.example .env
 docker compose up -d
 ```
 
+> **Windows 11 (PowerShell)?** Use the included [`setup.ps1`](https://raw.githubusercontent.com/puemos/craftplan/main/setup.ps1) script instead — it handles downloads, secret generation, and startup automatically:
+> ```powershell
+> Invoke-WebRequest -Uri https://raw.githubusercontent.com/puemos/craftplan/main/setup.ps1 -OutFile setup.ps1
+> .\setup.ps1
+> ```
+> Alternatively, replace the bash commands above with their PowerShell equivalents:
+> ```powershell
+> # Download files
+> Invoke-WebRequest -Uri https://raw.githubusercontent.com/puemos/craftplan/main/docker-compose.yml -OutFile docker-compose.yml
+> Invoke-WebRequest -Uri https://raw.githubusercontent.com/puemos/craftplan/main/.env.example -OutFile .env.example
+> # Copy env template
+> Copy-Item .env.example .env
+> # Start everything
+> docker compose up -d
+> ```
+
 Craftplan will be available at `http://localhost:4000` (or the `PORT` you configured). Migrations run automatically on startup.
 
 ---
@@ -76,24 +92,36 @@ Railway provisions a PostgreSQL database automatically. After deploying:
 
 ## Generating Secrets
 
-Your `.env` file requires several secrets. Generate them with `openssl`:
+Your `.env` file requires several secrets.
 
 ### SECRET_KEY_BASE and TOKEN_SIGNING_SECRET
 
 Both are random 64-byte strings. Generate each one separately:
 
 ```bash
+# bash / Git Bash / WSL2 / macOS
 openssl rand -base64 48
 ```
 
-Run the command twice -- once for `SECRET_KEY_BASE` and once for `TOKEN_SIGNING_SECRET`.
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+```
+
+Run the command twice — once for `SECRET_KEY_BASE` and once for `TOKEN_SIGNING_SECRET`.
 
 ### CLOAK_KEY
 
 A 32-byte AES key, base64-encoded:
 
 ```bash
+# bash / Git Bash / WSL2 / macOS
 openssl rand -base64 32
+```
+
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
 ```
 
 ### POSTGRES_PASSWORD
@@ -101,7 +129,13 @@ openssl rand -base64 32
 A password for the bundled PostgreSQL container (not needed if you supply your own `DATABASE_URL`):
 
 ```bash
+# bash / Git Bash / WSL2 / macOS
 openssl rand -base64 16
+```
+
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(16))
 ```
 
 ---

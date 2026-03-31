@@ -6,6 +6,8 @@ description: Set up a local development environment for contributing to Craftpla
 
 > **Looking to run Craftplan?** See the [Self-Hosting guide](/craftplan/docs/self-hosting/). This page is for developers who want to contribute.
 
+> **Windows 11 users:** The full development stack (Elixir, Erlang, mix) runs best inside **WSL2**. Install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and work from the Ubuntu terminal for the smoothest experience. Docker Desktop must also be configured to use the WSL2 backend.
+
 ## Prerequisites
 
 Before setting up Craftplan, make sure you have the following installed:
@@ -15,13 +17,14 @@ Before setting up Craftplan, make sure you have the following installed:
 - **PostgreSQL** 16 or later
 - **Node.js** 18 or later (for asset building)
 - **Docker** and **Docker Compose** (recommended for running PostgreSQL and MinIO)
+- **WSL2** (Windows only) — required by Docker Desktop and strongly recommended for running the Elixir toolchain; see the [WSL2 install guide](https://learn.microsoft.com/en-us/windows/wsl/install)
 
 ## Starting Dependencies
 
 The easiest way to run PostgreSQL and MinIO (S3-compatible object storage) is with Docker Compose:
 
 ```bash
-docker-compose up -d
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 This starts PostgreSQL 16 on the default port and MinIO for file storage.

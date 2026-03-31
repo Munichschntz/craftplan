@@ -144,9 +144,11 @@ See the [self-hosting guide](https://puemos.github.io/craftplan/docs/self-hostin
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d   # Start PostgreSQL + MinIO + Mailpit
-mix setup               # Install deps, migrate, build assets, seed
-mix phx.server          # Start at localhost:4000
+mix setup                                         # Install deps, migrate, build assets, seed
+mix phx.server                                    # Start at localhost:4000
 ```
+
+> **Windows 11:** Run these commands inside a [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) terminal. Docker Desktop must use the WSL2 backend.
 
 See the [development setup guide](https://puemos.github.io/craftplan/docs/getting-started/) for detailed instructions.
 

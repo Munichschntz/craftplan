@@ -31,27 +31,34 @@ Craftplan brings all essential business tools into one platform: catalog managem
 
 ## Features
 
+**Dashboard**
+- "Today at a glance" overview showing production commitments, capacity pressure, and material risks for the current cycle
+
 **Catalog & BOM**
 - Product catalog with photos and labels
 - Versioned Bills of Materials — edit latest, older versions read-only
 - Automatic cost rollups across nested BOMs
 - Labor steps with time and cost tracking
+- Printable product labels with print-optimised layout
 
 **Orders & Invoices**
-- Customer order processing with calendar-based scheduling
+- Customer order processing with table and in-app calendar views
 - Invoice generation
 - Order item allocation to production batches
+- Payment status and method tracking per order
 
 **Production**
 - Production batching with automatic material consumption
 - Cost snapshots per batch
 - Completion workflow with produced quantity tracking
+- Printable batch sheets with operator sign-off and process notes
 
 **Inventory**
 - Raw material management with lot traceability
 - Stock movements (consume, receive, adjust)
-- Allergen and nutritional fact tracking
+- Allergen and nutritional fact tracking per material; allergen and nutritional fact types managed globally from Settings
 - Demand forecasting and reorder planning
+- Automatic purchase order creation when stock falls below the minimum threshold (requires a preferred supplier)
 
 **Purchasing**
 - Purchase orders and supplier management
@@ -75,9 +82,16 @@ Craftplan brings all essential business tools into one platform: catalog managem
 - Includes order deliveries and production batch schedules
 - Generate and revoke feeds from Settings
 
+**Settings**
+- Currency, tax mode (inclusive / exclusive), and tax rate
+- Pickup and delivery fulfillment toggles
+- Lead time days, daily capacity cap, and flat shipping rate
+- Labor hourly rate for cost calculations
+- Global allergen and nutritional fact catalog management
+
 **API**
 - JSON:API and GraphQL endpoints for programmatic access
-- API key authentication with encrypted storage
+- API key authentication with per-resource scoped permissions and encrypted storage
 - CORS configuration
 
 **Access Control**
